@@ -1,0 +1,64 @@
+{
+    "files": [
+        {
+            "path": "WeatherappApplication.java",
+            "content": "package com.audora.weatherapp;\n\nimport org.springframework.boot.SpringApplication;\nimport org.springframework.boot.autoconfigure.SpringBootApplication;\n\n@SpringBootApplication\npublic class WeatherappApplication {\n\n\tpublic static void main(String[] args) {\n\t\tSpringApplication.run(WeatherappApplication.class, args);\n\t}\n\n}\n"
+        },
+        {
+            "path": "config/CorsConfig.java",
+            "content": "package com.audora.weatherapp.config;\n\nimport org.springframework.context.annotation.Configuration;\nimport org.springframework.web.servlet.config.annotation.*;\n\n@Configuration\npublic class CorsConfig implements WebMvcConfigurer {\n\n    @Override\n    public void addCorsMappings(CorsRegistry registry) {\n        registry.addMapping(\"/**\")\n                .allowedOrigins(\"http://localhost:3000\") // 프론트엔드 주소\n                .allowedMethods(\"*\")\n                .allowedHeaders(\"*\")\n                .allowCredentials(true);\n    }\n}\n"
+        },
+        {
+            "path": "config/SecurityConfig.java",
+            "content": "package com.audora.weatherapp.config;\n\nimport org.springframework.context.annotation.Bean;\nimport org.springframework.context.annotation.Configuration;\nimport org.springframework.security.config.annotation.web.builders.HttpSecurity;\nimport org.springframework.security.web.SecurityFilterChain;\nimport org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;\nimport org.springframework.security.crypto.password.PasswordEncoder;\n\n@Configuration\npublic class SecurityConfig {\n\n    // 패스워드 인코더 빈 등록\n    @Bean\n    public PasswordEncoder passwordEncoder() {\n        return new BCryptPasswordEncoder();\n    }\n\n    // 시큐리티 필터 체인 설정\n    @Bean\n    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {\n        http\n                .authorizeHttpRequests((authz) -> authz\n                        .requestMatchers(\"/api/auth/**\").permitAll()\n                        .anyRequest().permitAll()\n                ).csrf(csrf->csrf.disable());\n        return http.build();\n    }\n}\n"
+        },
+        {
+            "path": "controller/AuthController.java",
+            "content": "package com.audora.weatherapp.controller;\n\nimport com.audora.weatherapp.entity.User;\nimport com.audora.weatherapp.service.UserService;\nimport lombok.Getter;\nimport lombok.RequiredArgsConstructor;\nimport lombok.Setter;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.annotation.*;\n\n@RestController\n@RequestMapping(\"/api/auth\")\n@RequiredArgsConstructor\npublic class AuthController {\n    private final UserService userService;\n\n    // 회원가입\n    @PostMapping(\"/signup\")\n    public ResponseEntity<?> signup(@RequestBody User user) {\n        User savedUser = userService.registerUser(user);\n        return ResponseEntity.ok(savedUser);\n    }\n\n    // 로그인\n    @PostMapping(\"/login\")\n    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {\n        User user = userService.login(loginRequest.getEmail(), loginRequest.getPassword());\n        return ResponseEntity.ok(user);\n    }\n}\n\n@Getter\n@Setter\nclass LoginRequest {\n    private String email;\n    private String password;\n}\n"
+        },
+        {
+            "path": "controller/CommentController.java",
+            "content": "package com.audora.weatherapp.controller;\n\nimport com.audora.weatherapp.entity.Comment;\nimport com.audora.weatherapp.service.CommentService;\nimport lombok.RequiredArgsConstructor;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.annotation.*;\n\nimport java.util.List;\n\n@RestController\n@RequestMapping(\"/api/comments\")\n@RequiredArgsConstructor\npublic class CommentController {\n    private final CommentService commentService;\n\n    // 댓글 작성\n    @PostMapping\n    public ResponseEntity<?> createComment(@RequestBody Comment comment) {\n        Comment savedComment = commentService.createComment(comment);\n        return ResponseEntity.ok(savedComment);\n    }\n\n    // 특정 게시물의 댓글 조회\n    @GetMapping(\"/post/{postId}\")\n    public ResponseEntity<?> getCommentsByPostId(@PathVariable Long postId) {\n        List<Comment> comments = commentService.getCommentsByPostId(postId);\n        return ResponseEntity.ok(comments);\n    }\n}\n"
+        },
+        {
+            "path": "controller/PostController.java",
+            "content": "package com.audora.weatherapp.controller;\n\nimport com.audora.weatherapp.entity.Post;\nimport com.audora.weatherapp.service.PostService;\nimport lombok.RequiredArgsConstructor;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.annotation.*;\n\nimport java.util.List;\n\n@RestController\n@RequestMapping(\"/api/posts\")\n@RequiredArgsConstructor\npublic class PostController {\n    private final PostService postService;\n\n    // 게시물 목록 조회\n    @GetMapping\n    public ResponseEntity<?> getAllPosts() {\n        List<Post> posts = postService.getAllPosts();\n        return ResponseEntity.ok(posts);\n    }\n\n    // 게시물 작성\n    @PostMapping\n    public ResponseEntity<?> createPost(@RequestBody Post post) {\n        Post savedPost = postService.createPost(post);\n        return ResponseEntity.ok(savedPost);\n    }\n\n    // 게시물 상세 조회\n    @GetMapping(\"/{id}\")\n    public ResponseEntity<?> getPostById(@PathVariable Long id) {\n        Post post = postService.getPostById(id);\n        return ResponseEntity.ok(post);\n    }\n}\n"
+        },
+        {
+            "path": "entity/Comment.java",
+            "content": "package com.audora.weatherapp.entity;\n\nimport jakarta.persistence.*;\nimport lombok.Getter;\nimport lombok.NoArgsConstructor;\nimport lombok.Setter;\nimport lombok.ToString;\n\nimport java.time.LocalDateTime;\n\n@Entity\n@Table(name = \"comments\")\n@Getter\n@Setter\n@NoArgsConstructor\n@ToString\npublic class Comment {\n    @Id\n    @GeneratedValue(strategy = GenerationType.IDENTITY)\n    private Long id;\n    private String content;\n\n    private LocalDateTime createdAt=LocalDateTime.now();\n\n    @ManyToOne\n    @JoinColumn(name=\"post_id\")\n    private Post post;\n\n    @ManyToOne\n    @JoinColumn(name=\"user_id\")\n    private User user;\n}\n"
+        },
+        {
+            "path": "entity/Post.java",
+            "content": "package com.audora.weatherapp.entity;\n\nimport jakarta.persistence.*;\nimport lombok.Getter;\nimport lombok.NoArgsConstructor;\nimport lombok.Setter;\nimport lombok.ToString;\n\nimport java.time.LocalDateTime;\n\n@Entity\n@Table(name = \"posts\")\n@Getter\n@Setter\n@NoArgsConstructor\n@ToString\npublic class Post {\n    @Id\n    @GeneratedValue(strategy = GenerationType.IDENTITY)\n    private Long id;\n    private String title;\n    private String content;\n    private String imageUrl;\n\n    @ManyToOne\n    @JoinColumn(name=\"user_id\")\n    private User user;\n\n    private LocalDateTime createdAt= LocalDateTime.now();\n}\n"
+        },
+        {
+            "path": "entity/User.java",
+            "content": "package com.audora.weatherapp.entity;\n\n\nimport jakarta.persistence.*;\nimport lombok.Getter;\nimport lombok.NoArgsConstructor;\nimport lombok.Setter;\nimport lombok.ToString;\n\nimport java.util.Set;\n\n@Entity\n@Table(name = \"users\")\n@NoArgsConstructor\n@ToString\n@Getter\n@Setter\npublic class User {\n    @Id\n    @GeneratedValue(strategy = GenerationType.IDENTITY)\n    private Long id;\n    private String email;\n    private String password;\n    private String name;\n\n    @ElementCollection(fetch = FetchType.EAGER)\n    @CollectionTable(name = \"user_styles\",joinColumns = @JoinColumn(name = \"user_id\"))\n    @Column(name=\"style\")\n    private Set<String> preferredStyles;\n}\n"
+        },
+        {
+            "path": "repository/CommentRepository.java",
+            "content": "package com.audora.weatherapp.repository;\n\nimport com.audora.weatherapp.entity.Comment;\nimport org.springframework.data.jpa.repository.JpaRepository;\n\nimport java.util.List;\n\npublic interface CommentRepository extends JpaRepository<Comment,Long> {\n    List<Comment> findByPostId(Long postId);\n}\n"
+        },
+        {
+            "path": "repository/PostRepository.java",
+            "content": "package com.audora.weatherapp.repository;\n\nimport com.audora.weatherapp.entity.Post;\nimport org.springframework.data.jpa.repository.JpaRepository;\n\nimport java.util.List;\n\npublic interface PostRepository extends JpaRepository<Post,Long> {\n    List<Post> findAllByOrderByCreatedAtDesc();\n}\n"
+        },
+        {
+            "path": "repository/UserRepository.java",
+            "content": "package com.audora.weatherapp.repository;\n\nimport org.springframework.data.jpa.repository.JpaRepository;\nimport com.audora.weatherapp.entity.User;\n\nimport java.util.Optional;\n\npublic interface UserRepository extends JpaRepository<User,Long> {\n    Optional<User> findByEmail(String email);\n}\n"
+        },
+        {
+            "path": "service/CommentService.java",
+            "content": "package com.audora.weatherapp.service;\n\nimport com.audora.weatherapp.entity.Comment;\nimport com.audora.weatherapp.repository.CommentRepository;\nimport lombok.RequiredArgsConstructor;\nimport org.springframework.stereotype.Service;\n\nimport java.util.List;\n\n@Service\n@RequiredArgsConstructor\npublic class CommentService {\n    private final CommentRepository commentRepository;\n\n    public Comment createComment(Comment comment) {\n        return commentRepository.save(comment);\n    }\n\n    public List<Comment> getCommentsByPostId(Long postId) {\n        return commentRepository.findByPostId(postId);\n    }\n}\n"
+        },
+        {
+            "path": "service/PostService.java",
+            "content": "package com.audora.weatherapp.service;\n\nimport com.audora.weatherapp.entity.Post;\nimport com.audora.weatherapp.repository.PostRepository;\nimport lombok.RequiredArgsConstructor;\nimport org.springframework.stereotype.Service;\n\nimport java.util.List;\n\n@Service\n@RequiredArgsConstructor\npublic class PostService {\n    private final PostRepository postRepository;\n\n    public Post createPost(Post post){\n        return postRepository.save(post);\n    }\n\n    public List<Post> getAllPosts() {\n        return postRepository.findAllByOrderByCreatedAtDesc();\n    }\n\n    public Post getPostById(Long id) {\n        return postRepository.findById(id)\n                .orElseThrow(() -> new RuntimeException(\"게시물을 찾을 수 없습니다.\"));\n    }\n\n}\n"
+        },
+        {
+            "path": "service/UserService.java",
+            "content": "package com.audora.weatherapp.service;\n\nimport com.audora.weatherapp.entity.User;\nimport com.audora.weatherapp.repository.UserRepository;\nimport lombok.RequiredArgsConstructor;\nimport org.springframework.security.crypto.password.PasswordEncoder;\nimport org.springframework.stereotype.Service;\n\n@Service\n@RequiredArgsConstructor\npublic class UserService {\n    private final UserRepository userRepository;\n    private final PasswordEncoder passwordEncoder;\n\n    public User registerUser(User user){\n        if(userRepository.findByEmail(user.getEmail()).isPresent()){\n            throw  new RuntimeException(\"이미 사용 중인 이메일입니다.\");\n        }\n        user.setPassword(passwordEncoder.encode(user.getPassword()));\n        return userRepository.save(user);\n    }\n    public User login(String email, String password) {\n        User user = userRepository.findByEmail(email)\n                .orElseThrow(() -> new RuntimeException(\"존재하지 않는 이메일입니다.\"));\n        if (!passwordEncoder.matches(password, user.getPassword())) {\n            throw new RuntimeException(\"비밀번호가 일치하지 않습니다.\");\n        }\n        return user;\n    }\n}\n"
+        }
+    ]
+}
