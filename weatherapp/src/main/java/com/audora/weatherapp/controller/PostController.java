@@ -3,6 +3,8 @@ package com.audora.weatherapp.controller;
 import com.audora.weatherapp.entity.Post;
 import com.audora.weatherapp.service.PostService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,8 +18,8 @@ public class PostController {
 
     // 게시물 목록 조회
     @GetMapping
-    public ResponseEntity<?> getAllPosts() {
-        List<Post> posts = postService.getAllPosts();
+    public ResponseEntity<?> getAllPosts(Pageable pageable) {
+        List<Post> posts = postService.getAllPosts(pageable);
         return ResponseEntity.ok(posts);
     }
 

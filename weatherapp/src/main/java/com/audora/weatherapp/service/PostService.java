@@ -3,6 +3,7 @@ package com.audora.weatherapp.service;
 import com.audora.weatherapp.entity.Post;
 import com.audora.weatherapp.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +18,9 @@ public class PostService {
     }
 
     public List<Post> getAllPosts() {
+        return postRepository.findAllByOrderByCreatedAtDesc();
+    }
+    public List<Post> getAllPosts(Pageable pageable) {
         return postRepository.findAllByOrderByCreatedAtDesc();
     }
 
